@@ -186,6 +186,39 @@ public class UserService {
                 user.get().setRole(checkRoleUGR(user.get()));
                 userRepository.save(user.get());
                 temporaryTokenRepository.delete(temporaryToken.get());
+
+                // Before completing the activation, we pass the event to the statistics service
+                Map<String, String> message = new HashMap<>();
+                message.put("type", "REGISTRATION");
+                message.put("timestamp", String.valueOf(System.currentTimeMillis()));
+                message.put("userId", String.valueOf(user.get().getId()));
+                String userRole = user.get().getRole().getName();
+                if (userRole.equals("ROLE_STUDENT")) {
+                    message.put("userRole", "student");
+                }else if (userRole.equals("ROLE_TEACHER")) {
+                    message.put("userRole", "teacher");
+                }else{
+                    message.put("userRole", "unknown");
+                }
+                
+                try {
+                    // Convert map to json
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    String json = objectMapper.writeValueAsString(message);
+
+                    // Send message
+                    Message msg = MessageBuilder.withBody(json.getBytes())
+                        .setContentType("application/json")
+                        .build();
+
+                    rabbitTemplate.convertAndSend(RabbitMQConfig.STATISTICS_EVENT_EXCHANGE, RabbitMQConfig.STATISTICS_EVENT_ROUTING_KEY, msg);
+
+                } catch (JsonProcessingException e) {
+                    // Manejar la excepción aquí
+                    e.printStackTrace();
+                    throw new RuntimeException("Error processing JSON", e);
+                }
+
                 return user;
             }else{
                 return Optional.empty();
