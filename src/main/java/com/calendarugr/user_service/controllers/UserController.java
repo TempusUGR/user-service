@@ -37,6 +37,12 @@ public class UserController {
 
     private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(UserController.class);
 
+    @GetMapping("/check")
+    public ResponseEntity<?> checkService() {
+        logger.info("Checking user service health");
+        return ResponseEntity.ok("User service is running");
+    }
+
     @GetMapping("/all")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<User> users = userService.findAll();
